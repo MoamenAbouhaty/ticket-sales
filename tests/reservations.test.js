@@ -42,7 +42,7 @@ function reserveSeat(seatId, customerName) {
 
 describe("Seat reservation concurrency", () => {
   test("only one concurrent reservation succeeds", async () => {
-    const seatId = 10003;
+    const seatId = 20003;
 
     const results = await Promise.all([
       reserveSeat(seatId, "Customer A"),
