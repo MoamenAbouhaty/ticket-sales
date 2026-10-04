@@ -140,6 +140,34 @@ Expected status:
 200 OK
 ```
 
+### Quick Verification
+
+After starting the API, verify the service with these commands.
+
+First, check the API health:
+
+```bash
+curl http://localhost:3000/health
+```
+
+Expected response:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+Then, list the available seats for Event 1:
+
+```bash
+curl http://localhost:3000/events/41/seats/available
+```
+
+A successful response confirms that the server is running, the database is available, and the seeded event data can be queried.
+
+If the second command returns an array of available seats, the project is ready for the reservation examples below.
+
 At this point, the API is running and can be tested through the documented endpoints below.
 
 ## API Endpoints
@@ -342,6 +370,7 @@ Observed result:
 
 ```text
 Concurrent reservation results:
+
 [
   {
     "status": 201,
@@ -370,9 +399,9 @@ Therefore, both concurrent requests cannot successfully reserve the same seat.
 
 The exact `orderId` may differ when the test is run again because it depends on the current database state.
 
-## Automated Concurrency Test
+## Automated Tests
 
-The concurrency behavior is also covered by Jest.
+The reservation and health endpoints are also covered by Jest.
 
 Run:
 
@@ -383,17 +412,19 @@ npm test
 Example result:
 
 ```text
-Test Suites: 1 passed, 1 total
-Tests:       1 passed, 1 total
+Test Suites: 2 passed, 2 total
+Tests:       4 passed, 4 total
 Snapshots:   0 total
-Time:        13.097 s
-
-Ran all test suites.
 ```
 
-The test verifies that concurrent reservation attempts cannot both successfully reserve the same seat.
+The automated tests cover:
 
-The expected reservation outcomes are:
+* Health endpoint success response.
+* Concurrent reservation protection.
+* Reserving a non-existent seat.
+* Attempting to reserve an already reserved seat.
+
+The expected reservation outcomes for the concurrency test are:
 
 ```text
 201
@@ -459,10 +490,12 @@ ticket-sales/
 │       ├── events.js
 │       └── reservations.js
 ├── tests/
+│   ├── health.test.js
 │   └── reservations.test.js
 ├── test-concurrency.js
 ├── .gitignore
 ├── package.json
+├── package-lock.json
 └── README.md
 ```
 
@@ -476,7 +509,7 @@ npm start
 
 Starts the API server on port `3000`.
 
-### Seed the database
+### Seed the Database
 
 ```bash
 npm run seed
@@ -484,7 +517,7 @@ npm run seed
 
 Creates the SQLite database and seeds 20 events with 10,000 seats.
 
-### Run tests
+### Run Tests
 
 ```bash
 npm test
