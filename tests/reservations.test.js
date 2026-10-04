@@ -42,7 +42,7 @@ function reserveSeat(seatId, customerName) {
 
 describe("Seat reservation concurrency", () => {
   test("only one concurrent reservation succeeds", async () => {
-    const seatId = 20003;
+    const seatId = 20499;
 
     const results = await Promise.all([
       reserveSeat(seatId, "Customer A"),
@@ -54,5 +54,36 @@ describe("Seat reservation concurrency", () => {
       .sort();
 
     expect(statuses).toEqual([201, 409]);
+  });
+});
+
+describe("Seat reservation errors", () => {
+  test("returns 404 when the seat does not exist", async () => {
+    const result = await reserveSeat(999999, "Customer Not Found");
+
+    expect(result.status).toBe(404);
+    expect(result.body).toEqual({
+      error: "Seat not found"
+    });
+  });
+
+  test("returns 409 when the seat is already reserved", async () => {
+    const seatId = 20500;
+
+    const firstReservation = await reserveSeat(
+      seatId,
+      "Customer First"
+    );
+
+    const secondReservation = await reserveSeat(
+      seatId,
+      "Customer Second"
+    );
+
+    expect(firstReservation.status).toBe(201);
+    expect(secondReservation.status).toBe(409);
+    expect(secondReservation.body).toEqual({
+      error: "Seat is already reserved"
+    });
   });
 });
