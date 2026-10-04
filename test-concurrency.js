@@ -1,6 +1,6 @@
 const http = require("http");
 
-const seatId = 10002;
+const seatId = 20002;
 
 function reserve(customerName) {
   return new Promise((resolve, reject) => {

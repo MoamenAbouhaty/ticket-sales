@@ -83,6 +83,8 @@ Events: 20
 Seats: 10000
 ```
 
+The exact seed execution time may vary between machines.
+
 ## Running the API
 
 Clone the repository:
@@ -178,8 +180,10 @@ No request body is required.
 
 #### Example
 
+After seeding the database, Event 1 uses event ID `41`.
+
 ```bash
-curl http://localhost:3000/events/21/seats/available
+curl http://localhost:3000/events/41/seats/available
 ```
 
 #### Response
@@ -191,18 +195,18 @@ Example:
 ```json
 [
   {
-    "id": 10001,
+    "id": 20001,
     "seat_number": 1
   }
 ]
 ```
 
+The seeded Event 1 contains 500 seats.
+
 #### Status Codes
 
 * `200 OK` — Available seats were returned successfully.
 * `404 Not Found` — The requested event does not exist.
-
-The exact response shape depends on the records available for the requested event.
 
 ### Query Performance
 
@@ -237,18 +241,20 @@ Request body:
 #### Example
 
 ```bash
-curl -X POST "http://localhost:3000/seats/10001/reserve" \
+curl -X POST "http://localhost:3000/seats/20001/reserve" \
   -H "Content-Type: application/json" \
   -d '{"customerName":"Moamen"}'
 ```
 
 #### Successful Response
 
+Example:
+
 ```json
 {
   "message": "Seat reserved successfully",
-  "orderId": 1,
-  "seatId": 10001
+  "orderId": 4,
+  "seatId": 20001
 }
 ```
 
@@ -274,9 +280,26 @@ Status:
 409 Conflict
 ```
 
+#### Seat Not Found
+
+If the requested seat does not exist:
+
+```json
+{
+  "error": "Seat not found"
+}
+```
+
+Status:
+
+```text
+404 Not Found
+```
+
 #### Status Codes
 
 * `201 Created` — Seat was successfully reserved.
+* `404 Not Found` — The requested seat does not exist.
 * `409 Conflict` — The seat has already been reserved.
 
 ## Concurrent Reservation Protection
@@ -298,7 +321,7 @@ This ensures that once one request successfully changes the seat from `free` to 
 
 ### Demonstration
 
-Two requests were sent concurrently for seat `10002`.
+Two requests were sent concurrently for seat `20002`.
 
 Run:
 
@@ -315,15 +338,14 @@ Promise.all([
 ]);
 ```
 
-Result:
+Observed result:
 
 ```text
 Concurrent reservation results:
-
 [
   {
     "status": 201,
-    "body": "{\"message\":\"Seat reserved successfully\",\"orderId\":2,\"seatId\":10002}"
+    "body": "{\"message\":\"Seat reserved successfully\",\"orderId\":5,\"seatId\":20002}"
   },
   {
     "status": 409,
@@ -344,7 +366,9 @@ The other request received:
 409 Conflict
 ```
 
-Therefore, both requests cannot successfully reserve the same seat.
+Therefore, both concurrent requests cannot successfully reserve the same seat.
+
+The exact `orderId` may differ when the test is run again because it depends on the current database state.
 
 ## Automated Concurrency Test
 
@@ -363,10 +387,13 @@ Test Suites: 1 passed, 1 total
 Tests:       1 passed, 1 total
 Snapshots:   0 total
 Time:        13.097 s
+
 Ran all test suites.
 ```
 
-The test verifies that two concurrent reservation requests produce exactly:
+The test verifies that concurrent reservation attempts cannot both successfully reserve the same seat.
+
+The expected reservation outcomes are:
 
 ```text
 201
@@ -377,13 +404,15 @@ The test verifies that two concurrent reservation requests produce exactly:
 
 The available-seat endpoint was tested against the seeded database containing 10,000 seats.
 
+The performance test targets Event 1, which uses event ID `41` after seeding.
+
 Command:
 
 ```bash
 for i in {1..10}; do
   curl -s -o /dev/null \
     -w "%{http_code} %{time_total}s\n" \
-    "http://localhost:3000/events/21/seats/available"
+    "http://localhost:3000/events/41/seats/available"
 done
 ```
 
@@ -420,6 +449,7 @@ This is well below the required 200 ms target for the seeded dataset.
 
 ```text
 ticket-sales/
+
 ├── src/
 │   ├── db.js
 │   ├── app.js
