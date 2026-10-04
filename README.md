@@ -12,9 +12,23 @@ The project models events, seats, and orders, seeds 10,000 seats across multiple
 * better-sqlite3
 * Jest
 
+## Prerequisites
+
+* Node.js 20 or later
+* npm 10 or later
+* Git
+
+No external database server is required. The project uses SQLite.
+
+## Environment Variables
+
+This project does not require any environment variables.
+
+The API can be installed, seeded, and started without a `.env` file.
+
 ## Database Design
 
-The application uses three related tables:
+The application uses three related tables.
 
 ### Events
 
@@ -64,16 +78,30 @@ Example output:
 
 ```text
 Seed completed: 40.151ms
+
 Events: 20
 Seats: 10000
 ```
 
 ## Running the API
 
+Clone the repository:
+
+```bash
+git clone https://github.com/MoamenAbouhaty/ticket-sales.git
+cd ticket-sales
+```
+
 Install dependencies:
 
 ```bash
 npm install
+```
+
+Seed the database:
+
+```bash
+npm run seed
 ```
 
 Start the server:
@@ -82,13 +110,15 @@ Start the server:
 npm start
 ```
 
-The API runs on:
+The API runs at:
 
 ```text
 http://localhost:3000
 ```
 
-Health check:
+### Health Check
+
+Run:
 
 ```bash
 curl http://localhost:3000/health
@@ -102,21 +132,79 @@ Expected response:
 }
 ```
 
-## API Endpoints
+Expected status:
 
-### List Available Seats
-
-```http
-GET /events/:eventId/seats/available
+```text
+200 OK
 ```
 
-Example:
+At this point, the API is running and can be tested through the documented endpoints below.
+
+## API Endpoints
+
+### GET /health
+
+Returns the current API health status.
+
+#### Input
+
+No parameters or request body are required.
+
+#### Response
+
+```json
+{
+  "status": "ok"
+}
+```
+
+#### Status Codes
+
+* `200 OK` — API is running successfully.
+
+---
+
+### GET /events/:eventId/seats/available
+
+Returns the available seats for a specific event.
+
+#### Input
+
+Path parameter:
+
+* `eventId` — ID of the event.
+
+No request body is required.
+
+#### Example
 
 ```bash
 curl http://localhost:3000/events/21/seats/available
 ```
 
+#### Response
+
 The endpoint returns only seats whose status is `free`.
+
+Example:
+
+```json
+[
+  {
+    "id": 10001,
+    "seat_number": 1
+  }
+]
+```
+
+#### Status Codes
+
+* `200 OK` — Available seats were returned successfully.
+* `404 Not Found` — The requested event does not exist.
+
+The exact response shape depends on the records available for the requested event.
+
+### Query Performance
 
 The database has an index on:
 
@@ -124,15 +212,29 @@ The database has an index on:
 (event_id, status)
 ```
 
-to make available-seat queries efficient.
+This index is used to make available-seat queries efficient.
 
-### Reserve a Seat
+---
 
-```http
-POST /seats/:seatId/reserve
+### POST /seats/:seatId/reserve
+
+Reserves a specific seat for a customer.
+
+#### Input
+
+Path parameter:
+
+* `seatId` — ID of the seat to reserve.
+
+Request body:
+
+```json
+{
+  "customerName": "Moamen"
+}
 ```
 
-Example:
+#### Example
 
 ```bash
 curl -X POST "http://localhost:3000/seats/10001/reserve" \
@@ -140,7 +242,7 @@ curl -X POST "http://localhost:3000/seats/10001/reserve" \
   -d '{"customerName":"Moamen"}'
 ```
 
-Successful response:
+#### Successful Response
 
 ```json
 {
@@ -150,6 +252,14 @@ Successful response:
 }
 ```
 
+Status:
+
+```text
+201 Created
+```
+
+#### Already Reserved
+
 If the seat has already been reserved:
 
 ```json
@@ -158,11 +268,16 @@ If the seat has already been reserved:
 }
 ```
 
-with HTTP status:
+Status:
 
 ```text
 409 Conflict
 ```
+
+#### Status Codes
+
+* `201 Created` — Seat was successfully reserved.
+* `409 Conflict` — The seat has already been reserved.
 
 ## Concurrent Reservation Protection
 
@@ -179,11 +294,13 @@ WHERE id = ?
 
 The `orders.seat_id` column is also protected by a `UNIQUE` constraint.
 
+This ensures that once one request successfully changes the seat from `free` to `reserved`, another concurrent request cannot successfully reserve the same seat.
+
 ### Demonstration
 
 Two requests were sent concurrently for seat `10002`.
 
-Command:
+Run:
 
 ```bash
 node test-concurrency.js
@@ -202,6 +319,7 @@ Result:
 
 ```text
 Concurrent reservation results:
+
 [
   {
     "status": 201,
@@ -214,11 +332,19 @@ Concurrent reservation results:
 ]
 ```
 
-Only one request succeeded with `201 Created`.
+Only one request succeeded with:
 
-The other request received `409 Conflict`.
+```text
+201 Created
+```
 
-Therefore, both requests cannot reserve the same seat.
+The other request received:
+
+```text
+409 Conflict
+```
+
+Therefore, both requests cannot successfully reserve the same seat.
 
 ## Automated Concurrency Test
 
@@ -230,7 +356,7 @@ Run:
 npm test
 ```
 
-Result:
+Example result:
 
 ```text
 Test Suites: 1 passed, 1 total
@@ -282,13 +408,13 @@ The slowest observed request was:
 0.004262 seconds
 ```
 
-approximately:
+Approximately:
 
 ```text
 4.3 ms
 ```
 
-This is well below the required 200 ms target.
+This is well below the required 200 ms target for the seeded dataset.
 
 ## Project Structure
 
@@ -312,17 +438,23 @@ ticket-sales/
 
 ## Available Scripts
 
+### Start the API
+
 ```bash
 npm start
 ```
 
-Starts the API server.
+Starts the API server on port `3000`.
+
+### Seed the database
 
 ```bash
 npm run seed
 ```
 
-Creates the database and seeds 20 events with 10,000 seats.
+Creates the SQLite database and seeds 20 events with 10,000 seats.
+
+### Run tests
 
 ```bash
 npm test
@@ -330,20 +462,54 @@ npm test
 
 Runs the automated Jest tests.
 
+## Limitations and Known Issues
+
+This project is a backend exercise and is not intended to provide all features of a production ticketing platform.
+
+Current limitations include:
+
+* No authentication or authorization.
+* No real payment processing.
+* No email or notification system.
+* No rate limiting.
+* No seat-hold expiration mechanism.
+* The available-seat endpoint does not currently implement pagination.
+* SQLite is used as the database and is intended for this exercise rather than a high-traffic production environment.
+* The project does not include distributed application instances or a load balancer.
+
+## Decisions to Revisit at 10x Traffic
+
+If traffic increased by approximately 10x, I would revisit the following architectural decisions:
+
+* Move from SQLite to PostgreSQL to support higher concurrent write traffic.
+* Review and optimize database indexes using production query plans.
+* Add pagination to the available-seat endpoint.
+* Review database connection and transaction handling under higher concurrency.
+* Add rate limiting to protect the API from excessive traffic.
+* Consider caching for read-heavy event and seat availability queries where appropriate.
+* Run multiple API instances behind a load balancer.
+* Add structured logging, monitoring, and application metrics.
+* Add stronger observability around reservation failures and database performance.
+
 ## Requirements Checklist
 
-| Requirement                       | Status |
-| --------------------------------- | ------ |
-| Events, seats and orders modeled  | ✅      |
-| Three related tables              | ✅      |
-| Foreign keys                      | ✅      |
-| 10,000+ seeded seats              | ✅      |
-| Available-seat endpoint           | ✅      |
-| Seat reservation endpoint         | ✅      |
-| Concurrent reservation protection | ✅      |
-| Concurrency demonstrated          | ✅      |
-| Automated concurrency test        | ✅      |
-| Available-seat query under 200 ms | ✅      |
+| Requirement                       | Status   |
+| --------------------------------- | -------- |
+| Events, seats and orders modeled  | Complete |
+| Three related tables              | Complete |
+| Foreign keys                      | Complete |
+| 10,000+ seeded seats              | Complete |
+| Available-seat endpoint           | Complete |
+| Seat reservation endpoint         | Complete |
+| Concurrent reservation protection | Complete |
+| Concurrency demonstrated          | Complete |
+| Automated concurrency test        | Complete |
+| Available-seat query under 200 ms | Complete |
+| README with setup instructions    | Complete |
+| Environment variables documented  | Complete |
+| Endpoint status codes documented  | Complete |
+| Limitations documented            | Complete |
+| 10x traffic decisions documented  | Complete |
 
 ## Author
 
