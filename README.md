@@ -490,6 +490,7 @@ ticket-sales/
 │       ├── events.js
 │       └── reservations.js
 ├── tests/
+│   ├── events.test.js
 │   ├── health.test.js
 │   └── reservations.test.js
 ├── test-concurrency.js
@@ -499,6 +500,8 @@ ticket-sales/
 └── README.md
 ```
 - `tests/health.test.js` — automated tests for the health endpoint
+
+- `tests/events.test.js` — automated tests for the available seats endpoint
 ## Available Scripts
 
 ### Start the API
