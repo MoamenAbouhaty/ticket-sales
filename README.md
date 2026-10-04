@@ -498,7 +498,7 @@ ticket-sales/
 ├── package-lock.json
 └── README.md
 ```
-
+- `tests/health.test.js` — automated tests for the health endpoint
 ## Available Scripts
 
 ### Start the API
